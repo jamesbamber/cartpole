@@ -5,14 +5,14 @@ import numpy as np
 from numpy import cos, sin
 
 from constants import *
-from physics import *
+from physics_rigidpole import *
 from integrators import *
 from state import SimulationState
 
 state = SimulationState()
 
 fig = plt.figure(figsize=(10, 20))
-ax = fig.add_subplot(3,1,(1,2), autoscale_on=False, xlim=(-4*l, 4*l), ylim=(-1.5*l, 1.5*l))
+ax = fig.add_subplot(3,1,(1,2), autoscale_on=False, xlim=(-8*l, 8*l), ylim=(-1.5*l, 1.5*l))
 ax.grid()
 ax.set_aspect("equal")
 

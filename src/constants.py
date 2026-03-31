@@ -4,12 +4,12 @@ g = 9.81
 l = 1
 m1 = 2
 m2 = 1
-Fmod = 1
+Fmod = 10
 
 #initial conditions
 
 x0 = 0
-th0 = 180
+th0 = 90
 v0 = 0
 w0 = 0
 

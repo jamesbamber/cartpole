@@ -1,7 +1,8 @@
 import numpy as np
 
 from constants import *
-from physics import *
+from physics_rigidpole import *
+
 
 class SimulationState:
     def __init__(self):
