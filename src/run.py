@@ -1,5 +1,6 @@
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+from matplotlib.transforms import Affine2D
 
 import numpy as np
 from numpy import cos, sin
@@ -11,19 +12,42 @@ from state import SimulationState
 
 state = SimulationState()
 
-fig = plt.figure(figsize=(10, 20))
-ax = fig.add_subplot(3,1,(1,2), autoscale_on=False, xlim=(-8*l, 8*l), ylim=(-1.5*l, 1.5*l))
+fig = plt.figure()
+gs = fig.add_gridspec(
+    4, 4,
+    wspace=0.3,
+    hspace=0.4
+)
+
+ax = fig.add_subplot(gs[0:3, :], autoscale_on=False, xlim=(-6*l, 6*l), ylim=(-2*l, 2*l))
 ax.grid()
 ax.set_aspect("equal")
 
-ax2 = fig.add_subplot(3,1,3, autoscale_on=False, xlim=(0, 100), ylim=(-m2*g*l, (m1+m2)*v0**2+m2*g*l))
+ax2 = fig.add_subplot(gs[3, 0:4])
 ax2.grid() 
 ax2.set_title("System Energy")
 
-line, = ax.plot([], [], 'o-', lw=2)
-trace1, = ax.plot([], [], '.-', lw=1, ms=1)
-trace2, = ax.plot([], [], '.-', lw=1, ms=1)
+line, = ax.plot([], [], '-', lw=5)
+pole_trace, = ax.plot([], [], '.-', lw=1, ms=1)
 energy_line, = ax2.plot([], [], '-', lw=2)
+
+cart = plt.Rectangle(
+    (-CART_WIDTH/2, -CART_HEIGHT/2),
+    CART_WIDTH, 
+    CART_HEIGHT, 
+    facecolor='gray', edgecolor='gray'
+)
+
+ax.add_patch(cart)
+
+pole = plt.Rectangle(
+    (-POLE_WIDTH/2, -POLE_WIDTH),
+    POLE_WIDTH,
+    l + POLE_WIDTH,
+    facecolor='black', edgecolor='black'
+)
+
+ax.add_patch(pole)
 
 action = 0
 pressed_keys = set()
@@ -54,15 +78,36 @@ def animate(frame):
     while len(state.t) <= i:
         state.step(rk4, action)
 
-    line.set_data([state.x1[-1], state.x2[-1]], [state.y1[-1], state.y2[-1]])
-    trace1.set_data(state.x1[-50:], state.y1[-50:])
-    trace2.set_data(state.x2[-50:], state.y2[-50:])
+    x1 = state.x1[-1]
+    x2 = state.x2[-1]
+    y1 = state.y1[-1]
+    y2 = state.y2[-1]
+
+    th = state.state[-1][1]
+
+    cart.set_xy((x1 - CART_WIDTH/2, y1 - CART_HEIGHT/2))
+
+    pole_trans = (
+        Affine2D()
+        .rotate_around(x1, y1, -th)
+        + ax.transData
+    )
+
+    pole.set_transform(pole_trans)
+    pole.set_xy((x1 - POLE_WIDTH/2, y1 - POLE_WIDTH/2))
+
+    # line.set_data([x1, x2], [y1, y2])
+    pole_trace.set_data(state.x2[-50:], state.y2[-50:])
     energy_line.set_data(state.t[:i], state.E[:i])
+    
+    ax2.relim()
+    ax2.autoscale_view()
 
-    return line, trace1, trace2, energy_line
+    return cart, pole, energy_line, line
 
-ani = animation.FuncAnimation (
-    fig, animate, 1000 * FPS, interval=1000 / FPS, blit=True
-)
+if __name__ == "__main__":
+    ani = animation.FuncAnimation (
+        fig, animate, 1000 * FPS, interval=1000 / FPS, blit=False
+    )
 
-plt.show()
+    plt.show()

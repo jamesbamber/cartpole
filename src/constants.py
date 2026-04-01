@@ -9,7 +9,7 @@ Fmod = 10
 #initial conditions
 
 x0 = 0
-th0 = 90
+th0 = 5
 v0 = 0
 w0 = 0
 
@@ -17,3 +17,7 @@ w0 = 0
 
 dt = 0.01
 FPS = 60
+
+CART_WIDTH = 0.6
+CART_HEIGHT = 0.3
+POLE_WIDTH = 0.1
