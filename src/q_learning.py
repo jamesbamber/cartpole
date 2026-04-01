@@ -24,7 +24,7 @@ alpha_decay = 0.99
 epsilon = 1.0   # exploration rate
 epsilon_decay = 0.99
 epsilon_min = 0.001
-episodes = 100
+episodes = 10000
 
 dt = 0.01
 
@@ -34,7 +34,7 @@ th_disc = np.linspace(-th_max, th_max, n_th)
 v_disc = np.linspace(-v_max, v_max, n_v)
 w_disc = np.linspace(-w_max, w_max, n_w)
 state_disc = [x_disc, th_disc, v_disc, w_disc]
-print(state_disc)
+# print(state_disc)
 
 
 # build R as R(s,a) discrete or use the continuos form:
@@ -43,8 +43,8 @@ def reward (x_i, th_i, v_i, w_i):
     th = th_disc[th_i]
     v = v_disc[v_i]
     w = w_disc[w_i]
-    return 1 - 5*th**2 - 0.1*w**2 - 0.01*x**2
-
+    #return 1 - 5*th**2 - 0.1*w**2 - 0.01*x**2
+    return 1
 
 
 # returns the index of the value_disc array for the continuos value
@@ -54,7 +54,7 @@ def discretize(value, value_max, n_value):
     n_value = np.array(n_value)
     ratio = (value + value_max) / (2 * value_max)
     ratio = np.clip(ratio, 0, 1)
-    idx = (ratio * (n_value - 1)).astype(int)
+    idx = np.clip(ratio * n_value, 0, n_value-1).astype(int)
     return idx
 
 # building T using f and projecting the state values into the discrete field
@@ -83,14 +83,15 @@ for i in range(n_x):
 
 
 def random_state():
-    i = random.random()
-    x_i= int(i*(n_x-1))
-    i = random.random()
-    th_i= int(i*(n_th-1))
-    i = random.random()
-    v_i= int(i*(n_v-1))
-    i = random.random()
-    w_i= int(i*(n_w-1))
+    # x_i= int(i*(n_x-1))
+    # th_i= int(i*(n_th-1))
+    # v_i= int(i*(n_v-1))
+    # w_i= int(i*(n_w-1))
+    sigma = 0.15
+    x_i  = int(np.clip(np.random.normal(n_x  / 2, sigma * n_x ), 0, n_x  - 1))
+    th_i = int(np.clip(np.random.normal(n_th / 2, sigma * n_th), 0, n_th - 1))
+    v_i  = int(np.clip(np.random.normal(n_v  / 2, sigma * n_v ), 0, n_v  - 1))
+    w_i  = int(np.clip(np.random.normal(n_w  / 2, sigma * n_w ), 0, n_w  - 1))
     return x_i, th_i, v_i, w_i
 
 def take_action(epsilon, x_i, th_i, v_i, w_i):
@@ -121,16 +122,22 @@ for e in range(episodes):
         action = take_action(epsilon, x_i, th_i, v_i, w_i)
         r = reward(x_i, th_i, v_i, w_i)
         x_j, th_j, v_j, w_j = T[x_i, th_i, v_i, w_i, action]
+        print(x_i, th_i, v_i, w_i, " i.e. ", x_disc[x_i], th_disc[th_i], v_disc[v_i], w_disc[w_i], ", action: ", action)
         if S[x_j, th_j, v_j, w_j] == 1:
-            r += 100
+            r -= 10
         m = np.max(Q[x_j, th_j, v_j, w_j])
         Qtar = r + gamma * m
+        print("Qtar: ", Qtar)
         Q[x_i, th_i, v_i, w_i, action] = Q[x_i, th_i, v_i, w_i, action] + alpha * (Qtar - Q[x_i, th_i, v_i, w_i, action])
+        print("Qupd: ", Q[x_i, th_i, v_i, w_i, action])
         x_i, th_i, v_i, w_i = x_j, th_j, v_j, w_j
         steps += 1
+        if steps > 500:
+            break
     epsilon = epsilon * epsilon_decay
     episode_length.append(steps)
 
+print("DONE")
 print(episode_length)
 # print(S)
 print(Q)

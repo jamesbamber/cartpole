@@ -103,11 +103,11 @@ def animate(frame):
     ax2.relim()
     ax2.autoscale_view()
 
-    return cart, pole, energy_line, line
+    return cart, pole, energy_line, line, pole_trace,
 
 if __name__ == "__main__":
     ani = animation.FuncAnimation (
-        fig, animate, 1000 * FPS, interval=1000 / FPS, blit=False
+        fig, animate, 1000 * FPS, interval=1000 / FPS, blit=True
     )
 
     plt.show()

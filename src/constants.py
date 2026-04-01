@@ -16,7 +16,7 @@ w0 = 0
 #plotting constants
 
 dt = 0.01
-FPS = 60
+FPS = 120
 
 CART_WIDTH = 0.6
 CART_HEIGHT = 0.3
