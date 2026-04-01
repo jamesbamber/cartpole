@@ -49,7 +49,7 @@ pole = plt.Rectangle(
 
 ax.add_patch(pole)
 
-action = 0
+action = 2
 pressed_keys = set()
 
 def on_key(event):
@@ -60,12 +60,12 @@ def on_key(event):
     elif event.name == 'key_release_event':
         pressed_keys.discard(event.key)
 
-    if "right" in pressed_keys:
-        action = 1
-    elif "left" in pressed_keys:
-        action = 2
-    else:
+    if "left" in pressed_keys:
         action = 0
+    elif "right" in pressed_keys:
+        action = 1
+    else:
+        action = 2
 
 fig.canvas.mpl_connect('key_press_event', on_key)
 fig.canvas.mpl_connect('key_release_event', on_key)
