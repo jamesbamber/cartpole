@@ -19,11 +19,11 @@ n_w = 25
 # define iperparameters
 gamma = 0.99     # discount rate
 alpha = 0.1     # learning rate
-alpha_decay = 0.9999
+alpha_decay = 0.9995
 alpha_min = 0.01
 epsilon = 1.0   # exploration rate
-epsilon_decay = 0.9998
-epsilon_min = 0.10
+epsilon_decay = 0.9995
+epsilon_min = 0.010
 episodes = 10000
 
 dt = 0.01 # not actually used (taken from constants)
@@ -88,73 +88,83 @@ def terminal(state):
     x, th, v, w = state
     return abs(x) > x_max or abs(th) > th_max
 
+def training_loop():
+    global epsilon, alpha, Q
 
-INITIAL_Q = 0.0
+    INITIAL_Q = 0.0
+    Q = np.full((n_x, n_th, n_v, n_w, 2), INITIAL_Q)
 
-Q = np.full((n_x, n_th, n_v, n_w, 2), INITIAL_Q)
 
-episode_length = []
+    episode_length = []
 
-for e in range(episodes):
+    for e in range(episodes):
 
-    steps = 0
+        steps = 0
+        
+        state = random_state(e, episodes)
+        x_i, th_i, v_i, w_i = discretize(state)
+        sim = SimulationState(state)
+
+        # print(f"STARTING EPISODE {e}")
+
+        while 1:
+            action = take_action(epsilon, x_i, th_i, v_i, w_i)
+
+            for _ in range(ACTION_REPEAT):
+                sim.step(rk4, action)
+
+            new_state = sim.state[-1]
+            x_j, th_j, v_j, w_j = discretize(new_state)
+            r = reward(new_state)
+
+            # print(x_i, th_i, v_i, w_i, " i.e. ", x_disc[x_i], th_disc[th_i], v_disc[v_i], w_disc[w_i], ", action: ", action)
+            # print(f'Q values: action0 = {Q[x_i][th_i][v_i][w_i][0]} action1 = {Q[x_i][th_i][v_i][w_i][1]}')
+
+            done = terminal(new_state)
+
+            if done:
+                Qtar = -100
+            else:
+                Qtar = r + gamma * np.max(Q[x_j, th_j, v_j, w_j])
+            # print("Qtar: ", Qtar)
+            Q[x_i, th_i, v_i, w_i, action] += alpha * (Qtar - Q[x_i, th_i, v_i, w_i, action])
+            # print("Qupd: ", Q[x_i, th_i, v_i, w_i, action])
+            # print()
+            x_i, th_i, v_i, w_i = x_j, th_j, v_j, w_j
+            steps += 1
+            if steps >= 2000 or done: 
+                break 
+
+        if 1 or e > episodes/2: 
+            epsilon = max(epsilon * epsilon_decay, epsilon_min)
+        alpha = max(alpha * alpha_decay, alpha_min)
+        
+        episode_length.append(steps)
+
+        if (e + 1) % 1000 == 0:
+            recent = np.mean(episode_length[-1000:])
+            wins = episode_length[-1000:].count(2000)
+            print(f"Ep {e+1:5d} | eps={epsilon:.3f} | alpha={alpha:.3f} | avg (last 1k)={recent:.1f} | wins = {wins}")
+
+            visited = np.sum(np.any(Q != INITIAL_Q, axis=-1))
+            total = n_x * n_th * n_v * n_w
+            print(f"  visited: {visited}/{total} ({100*visited/total:.1f}%)")
+
+    print("DONE")
+    # print(episode_length)
+    # print(S)
+    # print(Q)
+
+
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+    ax.scatter(np.arange(0, episodes), episode_length, linewidth=0.5)
+    plt.show()
+
+if __name__ == '__main__':
+    training_loop()
     
-    state = random_state(e, episodes)
-    x_i, th_i, v_i, w_i = discretize(state)
-    sim = SimulationState(state)
-
-    # print(f"STARTING EPISODE {e}")
-
-    while 1:
-        action = take_action(epsilon, x_i, th_i, v_i, w_i)
-
-        for _ in range(ACTION_REPEAT):
-            sim.step(rk4, action)
-
-        new_state = sim.state[-1]
-        x_j, th_j, v_j, w_j = discretize(new_state)
-        r = reward(new_state)
-
-        # print(x_i, th_i, v_i, w_i, " i.e. ", x_disc[x_i], th_disc[th_i], v_disc[v_i], w_disc[w_i], ", action: ", action)
-        # print(f'Q values: action0 = {Q[x_i][th_i][v_i][w_i][0]} action1 = {Q[x_i][th_i][v_i][w_i][1]}')
-
-        done = terminal(new_state)
-
-        if done:
-            Qtar = -100
-        else:
-            Qtar = r + gamma * np.max(Q[x_j, th_j, v_j, w_j])
-        # print("Qtar: ", Qtar)
-        Q[x_i, th_i, v_i, w_i, action] += alpha * (Qtar - Q[x_i, th_i, v_i, w_i, action])
-        # print("Qupd: ", Q[x_i, th_i, v_i, w_i, action])
-        # print()
-        x_i, th_i, v_i, w_i = x_j, th_j, v_j, w_j
-        steps += 1
-        if steps >= 2000 or done: 
-            break 
-
-    if 1 or e > episodes/2: 
-        epsilon = max(epsilon * epsilon_decay, epsilon_min)
-    alpha = max(alpha * alpha_decay, alpha_min)
-    
-    episode_length.append(steps)
-
-    if (e + 1) % 1000 == 0:
-        recent = np.mean(episode_length[-1000:])
-        wins = episode_length[-1000:].count(2000)
-        print(f"Ep {e+1:5d} | eps={epsilon:.3f} | alpha={alpha:.3f} | avg (last 1k)={recent:.1f} | wins = {wins}")
-
-        visited = np.sum(np.any(Q != INITIAL_Q, axis=-1))
-        total = n_x * n_th * n_v * n_w
-        print(f"  visited: {visited}/{total} ({100*visited/total:.1f}%)")
-
-print("DONE")
-# print(episode_length)
-# print(S)
-# print(Q)
-
-import matplotlib.pyplot as plt
-
-fig, ax = plt.subplots()
-ax.scatter(np.arange(0, episodes), episode_length, linewidth=0.5)
-plt.show()
+    filename = "Q_table.npz"
+    np.savez_compressed(filename, Q = Q)
+    print(f"Simulation data successfully saved to {filename}")

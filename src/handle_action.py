@@ -1,0 +1,58 @@
+# action = 0 push left
+# action = 1 push right
+# action = 2 stay still
+
+import numpy as np
+
+import q_learning
+
+# maybe import this from somewhere in the future
+settings = {"control_type": "keyboard"}
+
+action = 2
+pressed_keys = set()
+
+def on_key(event):
+    global action, pressed_keys
+
+    if event.name == 'key_press_event':
+        pressed_keys.add(event.key)
+    elif event.name == 'key_release_event':
+        pressed_keys.discard(event.key)
+
+    if "left" in pressed_keys:
+        action = 0
+    elif "right" in pressed_keys:
+        action = 1
+    else:
+        action = 2
+
+def init_user_input(fig):
+    settings["control_type"] = "keyboard"
+
+    fig.canvas.mpl_connect('key_press_event', on_key)
+    fig.canvas.mpl_connect('key_release_event', on_key)
+
+
+def init_q_learning():
+
+    settings["control_type"] = "qlearning"
+    data = np.load("Q_table.npz")
+    try:
+        q_learning.Q = data['Q']
+    except:
+        print("Q table not found")
+        exit(1)
+
+def init(fig):
+
+    init_q_learning()
+    # init_user_input(fig)
+
+def get_action(state):
+    global action
+
+    if settings["control_type"] == "qlearning":
+        x_i, th_i, v_i, w_i = q_learning.discretize(state)
+        action = q_learning.take_action(0, x_i, th_i, v_i, w_i)
+    return action

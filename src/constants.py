@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 #simulation constants
 
@@ -11,10 +12,10 @@ dt = 0.01
 
 #initial conditions
 
-x0 = 0
-th0 = np.radians(0)
-v0 = 0
-w0 = np.radians(0)
+x0 = random.uniform(-0.5, 0.5)
+th0 = np.radians(random.uniform(-10, 10))
+v0 = random.uniform(-1, 1)
+w0 = np.radians(random.uniform(-1, 1))
 
 #plotting constants
 

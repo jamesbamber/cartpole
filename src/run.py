@@ -9,10 +9,13 @@ from constants import *
 from physics_rigidpole import *
 from integrators import *
 from state import SimulationState
+import handle_action
 
 state = SimulationState()
 
 fig = plt.figure()
+handle_action.init(fig)
+
 gs = fig.add_gridspec(
     4, 4,
     wspace=0.3,
@@ -23,9 +26,13 @@ ax = fig.add_subplot(gs[0:3, :], autoscale_on=False, xlim=(-6*l, 6*l), ylim=(-2*
 ax.grid()
 ax.set_aspect("equal")
 
-ax2 = fig.add_subplot(gs[3, 0:4])
+ax2 = fig.add_subplot(gs[3, 2:4])
 ax2.grid() 
 ax2.set_title("System Energy")
+
+buttons = fig.add_subplot(gs[3, 0:2], xlim=(-1, 3.5), ylim=(-1, 2))
+buttons.axis('off')
+
 
 line, = ax.plot([], [], '-', lw=5)
 pole_trace, = ax.plot([], [], '.-', lw=1, ms=1)
@@ -49,26 +56,23 @@ pole = plt.Rectangle(
 
 ax.add_patch(pole)
 
-action = 2
-pressed_keys = set()
 
-def on_key(event):
-    global action, pressed_keys
+push_left = plt.Rectangle(
+    (0, 0),
+    1,
+    1,
+    facecolor='white', edgecolor='black'
+)
 
-    if event.name == 'key_press_event':
-        pressed_keys.add(event.key)
-    elif event.name == 'key_release_event':
-        pressed_keys.discard(event.key)
+push_right = plt.Rectangle(
+    (1.5, 0),
+    1,
+    1,
+    facecolor='white', edgecolor='black'
+)
 
-    if "left" in pressed_keys:
-        action = 0
-    elif "right" in pressed_keys:
-        action = 1
-    else:
-        action = 2
-
-fig.canvas.mpl_connect('key_press_event', on_key)
-fig.canvas.mpl_connect('key_release_event', on_key)
+buttons.add_patch(push_left)
+buttons.add_patch(push_right)
 
 def animate(frame):
 
@@ -76,7 +80,17 @@ def animate(frame):
     i = int(curr_t / dt)
 
     while len(state.t) <= i:
-        state.step(rk4, action)
+        state.step(rk4, handle_action.get_action(state.state[-1]))
+
+    action = handle_action.get_action(state.state[-1])
+
+    push_left.set_facecolor('white')
+    push_right.set_facecolor('white')
+
+    if action == 0:
+        push_left.set_facecolor('red')
+    if action == 1:
+        push_right.set_facecolor('red')
 
     x1 = state.x1[-1]
     x2 = state.x2[-1]
@@ -103,7 +117,7 @@ def animate(frame):
     ax2.relim()
     ax2.autoscale_view()
 
-    return cart, pole, energy_line, line, pole_trace,
+    return cart, pole, energy_line, line, pole_trace, push_left, push_right
 
 if __name__ == "__main__":
     ani = animation.FuncAnimation (
