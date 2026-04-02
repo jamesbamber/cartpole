@@ -3,11 +3,14 @@ import numpy as np
 from constants import *
 from physics_rigidpole import *
 
-
 class SimulationState:
-    def __init__(self):
+    def __init__(self, initial_state = None):
+
+        if initial_state is None:
+            initial_state = [ x0, th0, v0, w0 ]
+
         self.t = [ 0 ]
-        self.state = [ np.array([ x0, np.radians(th0), v0, np.radians(w0) ])]
+        self.state = [ np.array(initial_state)]
         self.E = [ energy(self.state[-1]) ]
 
         self.x1 = []

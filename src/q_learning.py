@@ -1,98 +1,73 @@
 import numpy as np
 import random
 
-from physics_rigidpole import f
+from state import SimulationState
 from integrators import *
-
 
 # define ranges of discrete states
 x_max = 2.4
-th_max = np.radians(15)
-v_max = 3
-w_max = 4
+th_max = np.radians(12)
+v_max = 2
+w_max = 3
 
 # define number of values per variable
-n_x = 20
-n_th = 40
-n_v = 20
-n_w = 30
+n_x = 7
+n_th = 25
+n_v = 7
+n_w = 25
 
 # define iperparameters
-gamma = 0.9     # discount rate
+gamma = 0.99     # discount rate
 alpha = 0.1     # learning rate
-alpha_decay = 0.99
+alpha_decay = 0.9999
+alpha_min = 0.01
 epsilon = 1.0   # exploration rate
-epsilon_decay = 0.99
-epsilon_min = 0.001
+epsilon_decay = 0.9998
+epsilon_min = 0.10
 episodes = 10000
 
-dt = 0.01
+dt = 0.01 # not actually used (taken from constants)
+ACTION_REPEAT = 2
 
 
-x_disc = np.linspace(-x_max, x_max, n_x)
-th_disc = np.linspace(-th_max, th_max, n_th)
-v_disc = np.linspace(-v_max, v_max, n_v)
-w_disc = np.linspace(-w_max, w_max, n_w)
+x_disc = np.linspace(-x_max, x_max, n_x, endpoint=False )
+th_disc = np.linspace(-th_max, th_max, n_th, endpoint=False )
+v_disc = np.linspace(-v_max, v_max, n_v, endpoint=False )
+w_disc = np.linspace(-w_max, w_max, n_w, endpoint=False )
 state_disc = [x_disc, th_disc, v_disc, w_disc]
-# print(state_disc)
 
 
 # build R as R(s,a) discrete or use the continuos form:
-def reward (x_i, th_i, v_i, w_i):
-    x = x_disc[x_i]
-    th = th_disc[th_i]
-    v = v_disc[v_i]
-    w = w_disc[w_i]
-    #return 1 - 5*th**2 - 0.1*w**2 - 0.01*x**2
+def reward (state):
     return 1
+    # x, th, v, w = state
+    # return 1.0 - abs(th)/th_max - 0.05*abs(w)/w_max - 0.02*abs(x)/x_max
 
 
-# returns the index of the value_disc array for the continuos value
-def discretize(value, value_max, n_value):
+value_max = np.array([x_max, th_max, v_max, w_max])
+n_value = np.array([n_x, n_th, n_v, n_w])
+
+def discretize(value):
     value = np.array(value)
-    value_max = np.array(value_max)
-    n_value = np.array(n_value)
     ratio = (value + value_max) / (2 * value_max)
     ratio = np.clip(ratio, 0, 1)
-    idx = np.clip(ratio * n_value, 0, n_value-1).astype(int)
+    idx = np.clip((ratio * (n_value - 1)).astype(int), 0, n_value - 1)
     return idx
 
-# building T using f and projecting the state values into the discrete field
-# T(s,a) |-> s'
-T = np.zeros((n_x, n_th, n_v, n_w, 2, 4), dtype=int)
-max_arr = np.array([x_max, th_max, v_max, w_max])
-n_arr = np.array([n_x, n_th, n_v, n_w])
-for i in range(n_x):
-    for j in range(n_th):
-       for k in range(n_v):
-            for l in range(n_w):
-                for a in [0, 1]:
-                    t, new_state = rk4(0, (x_disc[i], th_disc[j], v_disc[k], w_disc[l]), f, dt, a)
-                    T[i, j, k, l, a] = discretize(new_state, max_arr, n_arr)
+def random_state(episode, max_episodes):
+    # Start very easy (near 0) and slowly widen the spawn range
+    # By episode 20,000, it will be at full difficulty
+    difficulty = min(1.0, episode / max_episodes * 2) 
 
+    x = np.random.uniform(-0.1, 0.1) * difficulty # Keep it centered early on
+    
+    # Start with almost 0 tilt, grow to th_max * 0.9
+    theta = np.random.uniform(-0.02, 0.02) + (np.random.uniform(-0.15, 0.15) * difficulty)
+    
+    v = np.random.uniform(-0.05, 0.05) * difficulty
+    w = np.random.uniform(-0.05, 0.05) * difficulty
 
-# S(s) |-> 0 (not terminal), 1 (terminal)
-S = np.zeros((n_x, n_th, n_v, n_w))
-for i in range(n_x):
-    for j in range(n_th):
-       for k in range(n_v):
-            for l in range(n_w):
-                if (i==0 or i==n_x-1 or j==0 or j==n_th-1):
-                    S[i, j, k, l] = 1
-
-
-
-def random_state():
-    # x_i= int(i*(n_x-1))
-    # th_i= int(i*(n_th-1))
-    # v_i= int(i*(n_v-1))
-    # w_i= int(i*(n_w-1))
-    sigma = 0.15
-    x_i  = int(np.clip(np.random.normal(n_x  / 2, sigma * n_x ), 0, n_x  - 1))
-    th_i = int(np.clip(np.random.normal(n_th / 2, sigma * n_th), 0, n_th - 1))
-    v_i  = int(np.clip(np.random.normal(n_v  / 2, sigma * n_v ), 0, n_v  - 1))
-    w_i  = int(np.clip(np.random.normal(n_w  / 2, sigma * n_w ), 0, n_w  - 1))
-    return x_i, th_i, v_i, w_i
+    return np.array([x, theta, v, w])
 
 def take_action(epsilon, x_i, th_i, v_i, w_i):
     e = random.random()
@@ -109,35 +84,77 @@ def greedy_action(x_i, th_i, v_i, w_i):
     b = Q[x_i, th_i, v_i, w_i, 1]
     return (0 if a>b else 1)
 
+def terminal(state):
+    x, th, v, w = state
+    return abs(x) > x_max or abs(th) > th_max
 
-Q = np.zeros((n_x, n_th, n_v, n_w, 2))
 
-# for debugging
+INITIAL_Q = 0.0
+
+Q = np.full((n_x, n_th, n_v, n_w, 2), INITIAL_Q)
+
 episode_length = []
 
 for e in range(episodes):
+
     steps = 0
-    x_i, th_i, v_i, w_i = random_state()
-    while S[x_i, th_i, v_i, w_i] == 0:
+    
+    state = random_state(e, episodes)
+    x_i, th_i, v_i, w_i = discretize(state)
+    sim = SimulationState(state)
+
+    # print(f"STARTING EPISODE {e}")
+
+    while 1:
         action = take_action(epsilon, x_i, th_i, v_i, w_i)
-        r = reward(x_i, th_i, v_i, w_i)
-        x_j, th_j, v_j, w_j = T[x_i, th_i, v_i, w_i, action]
-        print(x_i, th_i, v_i, w_i, " i.e. ", x_disc[x_i], th_disc[th_i], v_disc[v_i], w_disc[w_i], ", action: ", action)
-        if S[x_j, th_j, v_j, w_j] == 1:
-            r -= 10
-        m = np.max(Q[x_j, th_j, v_j, w_j])
-        Qtar = r + gamma * m
-        print("Qtar: ", Qtar)
-        Q[x_i, th_i, v_i, w_i, action] = Q[x_i, th_i, v_i, w_i, action] + alpha * (Qtar - Q[x_i, th_i, v_i, w_i, action])
-        print("Qupd: ", Q[x_i, th_i, v_i, w_i, action])
+
+        for _ in range(ACTION_REPEAT):
+            sim.step(rk4, action)
+
+        new_state = sim.state[-1]
+        x_j, th_j, v_j, w_j = discretize(new_state)
+        r = reward(new_state)
+
+        # print(x_i, th_i, v_i, w_i, " i.e. ", x_disc[x_i], th_disc[th_i], v_disc[v_i], w_disc[w_i], ", action: ", action)
+        # print(f'Q values: action0 = {Q[x_i][th_i][v_i][w_i][0]} action1 = {Q[x_i][th_i][v_i][w_i][1]}')
+
+        done = terminal(new_state)
+
+        if done:
+            Qtar = -100
+        else:
+            Qtar = r + gamma * np.max(Q[x_j, th_j, v_j, w_j])
+        # print("Qtar: ", Qtar)
+        Q[x_i, th_i, v_i, w_i, action] += alpha * (Qtar - Q[x_i, th_i, v_i, w_i, action])
+        # print("Qupd: ", Q[x_i, th_i, v_i, w_i, action])
+        # print()
         x_i, th_i, v_i, w_i = x_j, th_j, v_j, w_j
         steps += 1
-        if steps > 500:
-            break
-    epsilon = epsilon * epsilon_decay
+        if steps >= 2000 or done: 
+            break 
+
+    if 1 or e > episodes/2: 
+        epsilon = max(epsilon * epsilon_decay, epsilon_min)
+    alpha = max(alpha * alpha_decay, alpha_min)
+    
     episode_length.append(steps)
 
+    if (e + 1) % 1000 == 0:
+        recent = np.mean(episode_length[-1000:])
+        wins = episode_length[-1000:].count(2000)
+        print(f"Ep {e+1:5d} | eps={epsilon:.3f} | alpha={alpha:.3f} | avg (last 1k)={recent:.1f} | wins = {wins}")
+
+        visited = np.sum(np.any(Q != INITIAL_Q, axis=-1))
+        total = n_x * n_th * n_v * n_w
+        print(f"  visited: {visited}/{total} ({100*visited/total:.1f}%)")
+
 print("DONE")
-print(episode_length)
+# print(episode_length)
 # print(S)
-print(Q)
+# print(Q)
+
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots()
+ax.scatter(np.arange(0, episodes), episode_length, linewidth=0.5)
+plt.show()
