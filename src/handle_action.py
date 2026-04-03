@@ -14,8 +14,8 @@ action = 2
 
 def init(fig):
     # choose balancing mode:
-    # init_q_learning()
-    init_DQN()
+    init_q_learning()
+    # init_DQN()
     # init_user_input(fig)
 
 
