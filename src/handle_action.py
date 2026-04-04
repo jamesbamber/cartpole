@@ -5,11 +5,21 @@
 import numpy as np
 
 import q_learning
+import DQN
 
 # maybe import this from somewhere in the future
 settings = {"control_type": "keyboard"}
 
 action = 2
+
+def init(fig):
+    # choose balancing mode:
+    # init_q_learning()
+    init_DQN()
+    # init_user_input(fig)
+
+
+# user input
 pressed_keys = set()
 
 def on_key(event):
@@ -34,6 +44,7 @@ def init_user_input(fig):
     fig.canvas.mpl_connect('key_release_event', on_key)
 
 
+# q-learning
 def init_q_learning():
 
     settings["control_type"] = "qlearning"
@@ -44,10 +55,16 @@ def init_q_learning():
         print("Q table not found")
         exit(1)
 
-def init(fig):
 
-    init_q_learning()
-    # init_user_input(fig)
+# DQN
+def init_DQN():
+    global agent
+    settings["control_type"] = "DQN"
+    agent = DQN.DQNAgent()
+    agent.load("DQN_Model.h5")
+    
+
+
 
 def get_action(state):
     global action
@@ -55,4 +72,9 @@ def get_action(state):
     if settings["control_type"] == "qlearning":
         x_i, th_i, v_i, w_i = q_learning.discretize(state)
         action = q_learning.take_action(0, x_i, th_i, v_i, w_i)
+
+    if settings["control_type"] == "DQN":
+        state = np.reshape(state, [1, agent.state_size])
+        action = np.argmax(agent.model.predict(state, verbose=0))
+
     return action

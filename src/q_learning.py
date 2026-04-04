@@ -25,6 +25,7 @@ epsilon = 1.0   # exploration rate
 epsilon_decay = 0.9995
 epsilon_min = 0.010
 episodes = 10000
+max_steps = 2000
 
 dt = 0.01 # not actually used (taken from constants)
 ACTION_REPEAT = 2
@@ -132,7 +133,7 @@ def training_loop():
             # print()
             x_i, th_i, v_i, w_i = x_j, th_j, v_j, w_j
             steps += 1
-            if steps >= 2000 or done: 
+            if steps >= max_steps or done: 
                 break 
 
         if 1 or e > episodes/2: 
@@ -143,7 +144,7 @@ def training_loop():
 
         if (e + 1) % 1000 == 0:
             recent = np.mean(episode_length[-1000:])
-            wins = episode_length[-1000:].count(2000)
+            wins = episode_length[-1000:].count(max_steps)
             print(f"Ep {e+1:5d} | eps={epsilon:.3f} | alpha={alpha:.3f} | avg (last 1k)={recent:.1f} | wins = {wins}")
 
             visited = np.sum(np.any(Q != INITIAL_Q, axis=-1))

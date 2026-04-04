@@ -1,6 +1,7 @@
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
+from matplotlib.patches import FancyArrow
 
 import numpy as np
 from numpy import cos, sin
@@ -57,18 +58,26 @@ pole = plt.Rectangle(
 ax.add_patch(pole)
 
 
-push_left = plt.Rectangle(
-    (0, 0),
-    1,
-    1,
-    facecolor='white', edgecolor='black'
+push_left = FancyArrow(
+    0.5, 0.5,      # punto di partenza (x, y)
+    -1, 0,       # direzione (dx, dy) → sinistra
+    width=0.8,   # spessore corpo
+    length_includes_head=True,
+    head_width=1.2,
+    head_length=0.4,
+    facecolor='white',
+    edgecolor='black'
 )
 
-push_right = plt.Rectangle(
-    (1.5, 0),
-    1,
-    1,
-    facecolor='white', edgecolor='black'
+push_right = FancyArrow(
+    1, 0.5,      # punto di partenza
+    1, 0,        # direzione → destra
+    width=0.8,
+    length_includes_head=True,
+    head_width=1.2,
+    head_length=0.4,
+    facecolor='white',
+    edgecolor='black'
 )
 
 buttons.add_patch(push_left)
