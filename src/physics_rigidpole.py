@@ -15,6 +15,10 @@ def f(t, y, a):
         F = +Fmod
     elif a==2:
         F = 0
-    acc1 = (7*F + 3.5*m2*l*sin(th)*w**2 - 3*m2*g*cos(th)*sin(th)) / (7*m1 + 7*m2 - 3*m2*(cos(th)**2))
-    acc2 = 6/7 * (g*sin(th) - cos(th)*acc1) / l
+
+    c = cos(th)
+    s = sin(th)
+
+    acc1 = (7*F + 3.5*m2*l*s*w**2 - 3*m2*g*c*s) / (7*m1 + 7*m2 - 3*m2*(c**2))
+    acc2 = 6/7 * (g*s - c*acc1) / l
     return np.array([v, w, acc1, acc2])

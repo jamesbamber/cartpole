@@ -12,10 +12,10 @@ dt = 0.01
 
 #initial conditions
 
-x0 = random.uniform(-0.5, 0.5)
+x0 = random.uniform(-0.1, 0.1)
 th0 = np.radians(random.uniform(-10, 10))
-v0 = random.uniform(-1, 1)
-w0 = np.radians(random.uniform(-1, 1))
+v0 = random.uniform(-0.1, 0.1)
+w0 = np.radians(random.uniform(-0.1, 0.1))
 
 #plotting constants
 

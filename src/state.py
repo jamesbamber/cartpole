@@ -4,21 +4,25 @@ from constants import *
 from physics_rigidpole import *
 
 class SimulationState:
-    def __init__(self, initial_state = None):
+    def __init__(self, initial_state = None, logAll = True):
+
+        self.logAll = logAll
 
         if initial_state is None:
             initial_state = [ x0, th0, v0, w0 ]
 
         self.t = [ 0 ]
         self.state = [ np.array(initial_state)]
-        self.E = [ energy(self.state[-1]) ]
 
-        self.x1 = []
-        self.y1 = []
-        self.x2 = []
-        self.y2 = []
+        if self.logAll:
+            self.E = [ energy(self.state[-1]) ]
 
-        self.update_cartesian()
+            self.x1 = []
+            self.y1 = []
+            self.x2 = []
+            self.y2 = []
+
+            self.update_cartesian()
 
     def step(self, integrator, action):
         '''
@@ -28,9 +32,11 @@ class SimulationState:
 
         self.t.append(t)
         self.state.append(new_state)
-        self.E.append(energy(self.state[-1]))
 
-        self.update_cartesian()
+        if self.logAll:
+            self.E.append(energy(self.state[-1]))
+
+            self.update_cartesian()
 
     def update_cartesian(self): 
         x, th, v, w = self.state[-1]

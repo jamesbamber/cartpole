@@ -19,12 +19,12 @@ n_w = 25
 # define iperparameters
 gamma = 0.99     # discount rate
 alpha = 0.1     # learning rate
-alpha_decay = 0.9995
+alpha_decay = 0.9998
 alpha_min = 0.01
 epsilon = 1.0   # exploration rate
-epsilon_decay = 0.9995
+epsilon_decay = 0.9998
 epsilon_min = 0.010
-episodes = 10000
+episodes = 20000
 max_steps = 2000
 
 dt = 0.01 # not actually used (taken from constants)
@@ -40,9 +40,9 @@ state_disc = [x_disc, th_disc, v_disc, w_disc]
 
 # build R as R(s,a) discrete or use the continuos form:
 def reward (state):
-    return 1
-    # x, th, v, w = state
-    # return 1.0 - abs(th)/th_max - 0.05*abs(w)/w_max - 0.02*abs(x)/x_max
+    # return 1
+    x, th, v, w = state
+    return 1.0 - abs(th)/th_max - 0.05*abs(w)/w_max - 0.02*abs(x)/x_max
 
 
 value_max = np.array([x_max, th_max, v_max, w_max])
@@ -57,7 +57,6 @@ def discretize(value):
 
 def random_state(episode, max_episodes):
     # Start very easy (near 0) and slowly widen the spawn range
-    # By episode 20,000, it will be at full difficulty
     difficulty = min(1.0, episode / max_episodes * 2) 
 
     x = np.random.uniform(-0.1, 0.1) * difficulty # Keep it centered early on
@@ -65,8 +64,8 @@ def random_state(episode, max_episodes):
     # Start with almost 0 tilt, grow to th_max * 0.9
     theta = np.random.uniform(-0.02, 0.02) + (np.random.uniform(-0.15, 0.15) * difficulty)
     
-    v = np.random.uniform(-0.05, 0.05) * difficulty
-    w = np.random.uniform(-0.05, 0.05) * difficulty
+    v = np.random.uniform(-0.5, 0.5) * difficulty
+    w = np.random.uniform(-0.5, 0.5) * difficulty
 
     return np.array([x, theta, v, w])
 
@@ -92,7 +91,7 @@ def terminal(state):
 def training_loop():
     global epsilon, alpha, Q
 
-    INITIAL_Q = 0.0
+    INITIAL_Q = 1.0
     Q = np.full((n_x, n_th, n_v, n_w, 2), INITIAL_Q)
 
 
@@ -104,7 +103,7 @@ def training_loop():
         
         state = random_state(e, episodes)
         x_i, th_i, v_i, w_i = discretize(state)
-        sim = SimulationState(state)
+        sim = SimulationState(state, False)
 
         # print(f"STARTING EPISODE {e}")
 

@@ -69,7 +69,7 @@ def init_DQN():
 def get_action(state):
     global action
 
-    if settings["control_type"] == "qlearning":
+    if len(pressed_keys) == 0:
         x_i, th_i, v_i, w_i = q_learning.discretize(state)
         action = q_learning.take_action(0, x_i, th_i, v_i, w_i)
 
