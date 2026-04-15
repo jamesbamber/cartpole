@@ -82,10 +82,10 @@ class SJEnv():
 class DQNAgent:
     def __init__(self):
         self.env = SJEnv()
-        self.Model_name = "DQN_Model.h5"
+        self.Model_name = "DQN_Model5_0.h5"
         self.state_size = self.env.observation_space.shape[0]
         self.action_size = int(self.env.action_space.n)
-        self.EPISODES_training = 100
+        self.EPISODES_training = 150
         self.EPISODES_testing = 10
         self.memory = deque(maxlen=2000)
         self.total_steps = 0
@@ -93,9 +93,12 @@ class DQNAgent:
         self.gamma = 0.95    # discount rate
         self.epsilon = 1.0  # exploration rate
         self.epsilon_min = 0.001
-        self.epsilon_decay = 0.999
+        self.epsilon_decay = 0.9999
         self.batch_size = 128
-        self.train_start = 1000
+        self.train_start = 1500
+
+        
+        self.steps_list = []
 
         # create main model
         self.model = OurModel(input_shape=(self.state_size,), action_space = self.action_size)
@@ -125,14 +128,17 @@ class DQNAgent:
         # Randomly sample minibatch from the memory
         minibatch = random.sample(self.memory, min(len(self.memory), self.batch_size))
 
-        state = np.zeros((self.batch_size, self.state_size))
-        next_state = np.zeros((self.batch_size, self.state_size))
+        batch_len = len(minibatch)
+
+        state = np.zeros((batch_len, self.state_size))
+        next_state = np.zeros((batch_len, self.state_size))
+
         action, reward, done = [], [], []
 
         # do this before prediction
         # for speedup, this could be done on the tensor level
         # but easier to understand using a loop
-        for i in range(self.batch_size):
+        for i in range(batch_len):
             state[i] = minibatch[i][0]
             action.append(minibatch[i][1])
             reward.append(minibatch[i][2])
@@ -158,8 +164,8 @@ class DQNAgent:
                 target[i][action[i]] = reward[i] + self.gamma * (np.amax(target_next[i]))
 
         # Train the Neural Network with batches
-        self.model.fit(state, target, batch_size=self.batch_size, verbose=0)
-
+        history = self.model.fit(state, target, batch_size=batch_len, verbose=0)
+        return history.history['loss'][0]
 
     def load(self, name):
         self.model = load_model(name, compile=False)
@@ -167,30 +173,64 @@ class DQNAgent:
 
     def save(self, name):
         self.model.save(name)
-            
+
     def run(self):
-        for e in range(self.EPISODES_training):
-            state, _ = self.env.reset()
-            state = np.reshape(state, [1, self.state_size])
-            done = False
-            i = 0
-            while not done:
-                action = self.act(state)
-                next_state, reward, terminated, truncated, _ = self.env.step(action)
-                done = terminated or truncated
-                next_state = np.reshape(next_state, [1, self.state_size])
-                reward = reward
-                self.remember(state, action, reward, next_state, done)
-                state = next_state
-                i += 1
-                self.total_steps += 1 
-                if self.total_steps % 1000 == 0:
-                    self.update_target_model()
-                if done:                   
-                    print("episode: {}/{}, score: {}, e: {:.2}".format(e, self.EPISODES_training, i, self.epsilon))
-                self.replay()
-        print("Saving trained model as {}".format(self.Model_name))
-        self.save(self.Model_name)
+        attempt = 0
+
+        while True:
+            print(f"\n=== Nuovo training (tentativo {attempt}) ===\n")
+
+            # reset rete e memoria
+            self.model = OurModel(input_shape=(self.state_size,), action_space=self.action_size)
+            self.target_model = OurModel(input_shape=(self.state_size,), action_space=self.action_size)
+            self.update_target_model()
+
+            self.memory.clear()
+            self.epsilon = 1.0
+            self.total_steps = 0
+            self.steps_list = []
+
+            for e in range(self.EPISODES_training):
+                state, _ = self.env.reset()
+                state = np.reshape(state, [1, self.state_size])
+                done = False
+                i = 0
+
+                while not done:
+                    action = self.act(state)
+                    next_state, reward, terminated, truncated, _ = self.env.step(action)
+                    done = terminated or truncated
+
+                    next_state = np.reshape(next_state, [1, self.state_size])
+                    self.remember(state, action, reward, next_state, done)
+
+                    state = next_state
+                    i += 1
+                    self.total_steps += 1
+
+                    if self.total_steps % 1000 == 0:
+                        self.update_target_model()
+
+                    loss = self.replay()
+
+                    if done:
+                        loss_str = f"{loss:.4f}" if loss is not None else "N/A"
+                        print(f"episode: {e}/{self.EPISODES_training}, score: {i}, loss: {loss_str}, e: {self.epsilon:.4f}")
+
+                        self.steps_list.append(i)
+
+                        # condizione di convergenza (4 volte 2000)
+                        if len(self.steps_list) >= 4 and all(s == 2000 for s in self.steps_list[-4:]):
+                            print("Convergenza raggiunta (4 episodi da 2000 consecutivi)")
+                            print(f"Saving trained model as {self.Model_name}")
+                            self.save(self.Model_name)
+                            return
+
+                        break  # fine episodio
+
+            # se arriva qui → non ha convergito
+            print("Non convergente, riavvio training...\n")
+            attempt += 1
 
     def test(self):
         self.load(self.Model_name)
@@ -211,5 +251,5 @@ class DQNAgent:
 
 if __name__ == "__main__":
     agent = DQNAgent()
-    # agent.run()
-    agent.test()
+    agent.run()
+    # agent.test()

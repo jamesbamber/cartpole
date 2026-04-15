@@ -97,9 +97,9 @@ right_wall = plt.Rectangle(
 ax.add_patch(right_wall)
 
 push_left = FancyArrow(
-    1.0, 0.0,      # punto di partenza (x, y)
-    -1, 0,       # direzione (dx, dy) → sinistra
-    width=0.8,   # spessore corpo
+    0.5, 0.5,      # p(x, y) coordinates
+    -1, 0,       # (dx, dy) direction
+    width=0.8,
     length_includes_head=True,
     head_width=1.2,
     head_length=0.4,
@@ -108,8 +108,8 @@ push_left = FancyArrow(
 )
 
 push_right = FancyArrow(
-    1.5, 0.0,      # punto di partenza
-    1, 0,        # direzione → destra
+    1, 0.5,
+    1, 0,
     width=0.8,
     length_includes_head=True,
     head_width=1.2,

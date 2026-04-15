@@ -60,7 +60,10 @@ def init_DQN():
     global agent
     settings["control_type"] = "DQN"
     agent = DQN.DQNAgent()
-    agent.load("DQN_Model.h5")
+    agent.load(agent.Model_name)
+    
+
+
 
 def get_action(state):
     global action
