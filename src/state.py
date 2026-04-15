@@ -9,10 +9,10 @@ class SimulationState:
         self.logAll = logAll
 
         if initial_state is None:
-            initial_state = [ x0, th0, v0, w0 ]
+            initial_state = random_state()
 
         self.t = [ 0 ]
-        self.state = [ np.array(initial_state)]
+        self.state = [ np.array(initial_state) ]
 
         if self.logAll:
             self.E = [ energy(self.state[-1]) ]
@@ -45,3 +45,10 @@ class SimulationState:
         self.y1.append(0)
         self.x2.append(x + l*np.sin(th))
         self.y2.append(l*np.cos(th))
+
+    def is_terminal(self):
+        x, th, v, w = self.state[-1]
+        return abs(x) > x_max or abs(th) > th_max or self.current_time() > max_time
+    
+    def current_time(self):
+        return self.t[-1]

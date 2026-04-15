@@ -23,7 +23,7 @@ gs = fig.add_gridspec(
     hspace=0.4
 )
 
-ax = fig.add_subplot(gs[0:3, :], autoscale_on=False, xlim=(-6*l, 6*l), ylim=(-2*l, 2*l))
+ax = fig.add_subplot(gs[0:3, :], autoscale_on=False, xlim=(-4*l, 4*l), ylim=(-1.5*l, 1.5*l))
 ax.grid()
 ax.set_aspect("equal")
 
@@ -33,6 +33,25 @@ ax2.set_title("System Energy")
 
 buttons = fig.add_subplot(gs[3, 0:2], xlim=(-1, 3.5), ylim=(-1, 2))
 buttons.axis('off')
+
+bbox_props = dict(
+    boxstyle="round,pad=0.6", 
+    facecolor="#f8f9fa",      # Light gray background
+    edgecolor="#ced4da",      # Slightly darker gray border
+    linewidth=1.5
+)
+
+data = buttons.text(
+    1.25, 1.5,                 # Set x=1.25 (middle of your -1 to 3.5 axis)
+    "", 
+    fontsize=11, 
+    fontfamily='monospace',    # Monospace prevents text jitter when numbers change
+    fontweight='bold', 
+    color='#343a40',           # Soft dark gray text
+    ha='center',               # Center horizontally
+    va='center',               # Center vertically
+    bbox=bbox_props
+)
 
 
 line, = ax.plot([], [], '-', lw=5)
@@ -57,9 +76,28 @@ pole = plt.Rectangle(
 
 ax.add_patch(pole)
 
+WALL_WIDTH = 0.01
+
+left_wall = plt.Rectangle(
+    (-x_max-WALL_WIDTH, -0.1),
+    WALL_WIDTH, 
+    0.2, 
+    facecolor='red', edgecolor='red'
+)
+
+ax.add_patch(left_wall)
+
+right_wall = plt.Rectangle(
+    (x_max, -0.1),
+    WALL_WIDTH, 
+    0.2, 
+    facecolor='red', edgecolor='red'
+)
+
+ax.add_patch(right_wall)
 
 push_left = FancyArrow(
-    0.5, 0.5,      # punto di partenza (x, y)
+    1.0, 0.0,      # punto di partenza (x, y)
     -1, 0,       # direzione (dx, dy) → sinistra
     width=0.8,   # spessore corpo
     length_includes_head=True,
@@ -70,7 +108,7 @@ push_left = FancyArrow(
 )
 
 push_right = FancyArrow(
-    1, 0.5,      # punto di partenza
+    1.5, 0.0,      # punto di partenza
     1, 0,        # direzione → destra
     width=0.8,
     length_includes_head=True,
@@ -83,7 +121,9 @@ push_right = FancyArrow(
 buttons.add_patch(push_left)
 buttons.add_patch(push_right)
 
-def animate(frame):
+episode_scores = np.zeros(EPISODES)
+
+def animate(frame, episode):
 
     curr_t = frame / FPS
     i = int(curr_t / dt)
@@ -100,6 +140,18 @@ def animate(frame):
         push_left.set_facecolor('red')
     if action == 1:
         push_right.set_facecolor('red')
+
+    # Inside def animate(frame, episode):
+    current_score = state.current_time()
+    best_score = np.max(episode_scores)
+
+    pretty_text = (
+        f"   EPISODE: {episode}/{EPISODES}   \n"
+        f"   Current: {current_score:>6.2f}s   \n"
+        f"   Best:    {best_score:>6.2f}s   "
+    )
+    
+    data.set_text(pretty_text)
 
     x1 = state.x1[-1]
     x2 = state.x2[-1]
@@ -120,17 +172,40 @@ def animate(frame):
     pole.set_xy((x1 - POLE_WIDTH/2, y1 - POLE_WIDTH/2))
 
     # line.set_data([x1, x2], [y1, y2])
-    pole_trace.set_data(state.x2[-50:], state.y2[-50:])
+    # pole_trace.set_data(state.x2[-50:], state.y2[-50:])
     energy_line.set_data(state.t[:i], state.E[:i])
     
     ax2.relim()
     ax2.autoscale_view()
 
-    return cart, pole, energy_line, line, pole_trace, push_left, push_right
+
+def run_episode(episode_num):
+    global state
+    
+    state = SimulationState()
+
+    frame = 0
+    while not state.is_terminal():
+        animate(frame, episode_num)
+        plt.pause(1.0 / FPS)
+
+        frame += 1
+        episode_scores[episode_num-1] = state.current_time()
+
+    print(f"episode {episode_num} completed, score: {episode_scores[episode_num-1]:.2f}")
 
 if __name__ == "__main__":
-    ani = animation.FuncAnimation (
-        fig, animate, 1000 * FPS, interval=1000 / FPS, blit=True
-    )
 
+    plt.ion()
     plt.show()
+
+    for e in range(1, EPISODES+1):
+        run_episode(e)
+
+    plt.ioff()
+    plt.show()
+
+    print()
+    print(f"Game ended after {EPISODES} episodes.")
+    print(f"Best Score: {np.max(episode_scores):.2f}/{max_time:.2f}")
+    print(f"Average Score: {np.mean(episode_scores):.2f}")

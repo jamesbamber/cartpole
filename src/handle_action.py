@@ -34,8 +34,7 @@ def on_key(event):
         action = 0
     elif "right" in pressed_keys:
         action = 1
-    else:
-        action = 2
+
 
 def init_user_input(fig):
     settings["control_type"] = "keyboard"
@@ -62,14 +61,11 @@ def init_DQN():
     settings["control_type"] = "DQN"
     agent = DQN.DQNAgent()
     agent.load("DQN_Model.h5")
-    
-
-
 
 def get_action(state):
     global action
 
-    if len(pressed_keys) == 0:
+    if settings["control_type"] == "qlearning":
         x_i, th_i, v_i, w_i = q_learning.discretize(state)
         action = q_learning.take_action(0, x_i, th_i, v_i, w_i)
 
