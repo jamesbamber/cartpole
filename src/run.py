@@ -18,20 +18,23 @@ fig = plt.figure()
 handle_action.init(fig)
 
 gs = fig.add_gridspec(
-    4, 4,
-    wspace=0.3,
-    hspace=0.4
+    8, 4,
+    wspace=0.4,
+    hspace=0.6
 )
 
-ax = fig.add_subplot(gs[0:3, :], autoscale_on=False, xlim=(-4*l, 4*l), ylim=(-1.5*l, 1.5*l))
+ax = fig.add_subplot(gs[0:6, :], autoscale_on=False, xlim=(-4*l, 4*l), ylim=(-1.5*l, 1.5*l))
 ax.grid()
 ax.set_aspect("equal")
 
-ax2 = fig.add_subplot(gs[3, 2:4])
+ax2 = fig.add_subplot(gs[6:8, 2:4])
 ax2.grid() 
 ax2.set_title("System Energy")
 
-buttons = fig.add_subplot(gs[3, 0:2], xlim=(-1, 3.5), ylim=(-1, 2))
+text_ax = fig.add_subplot(gs[6, 0:2], xlim=(-1, 1), ylim=(-1, 1))
+text_ax.axis('off')
+
+buttons = fig.add_subplot(gs[7, 0:2], xlim=(-2, 2), ylim=(-1, 1))
 buttons.axis('off')
 
 bbox_props = dict(
@@ -41,8 +44,8 @@ bbox_props = dict(
     linewidth=1.5
 )
 
-data = buttons.text(
-    1.25, 1.5,                 # Set x=1.25 (middle of your -1 to 3.5 axis)
+data = text_ax.text(
+    0.0, 0.0,                 # Set x=1.25 (middle of your -1 to 3.5 axis)
     "", 
     fontsize=11, 
     fontfamily='monospace',    # Monospace prevents text jitter when numbers change
@@ -76,7 +79,7 @@ pole = plt.Rectangle(
 
 ax.add_patch(pole)
 
-WALL_WIDTH = 0.01
+WALL_WIDTH = 0.001
 
 left_wall = plt.Rectangle(
     (-x_max-WALL_WIDTH, -0.1),
@@ -85,8 +88,6 @@ left_wall = plt.Rectangle(
     facecolor='red', edgecolor='red'
 )
 
-ax.add_patch(left_wall)
-
 right_wall = plt.Rectangle(
     (x_max, -0.1),
     WALL_WIDTH, 
@@ -94,10 +95,27 @@ right_wall = plt.Rectangle(
     facecolor='red', edgecolor='red'
 )
 
+left_angle_limit = plt.Rectangle(
+    (-WALL_WIDTH/2, 0),
+    WALL_WIDTH,
+    1,
+    facecolor='red', edgecolor='red'
+)
+
+right_angle_limit = plt.Rectangle(
+    (-WALL_WIDTH/2, 0),
+    WALL_WIDTH,
+    1,
+    facecolor='red', edgecolor='red'
+)
+
+ax.add_patch(left_wall)
 ax.add_patch(right_wall)
+ax.add_patch(left_angle_limit)
+ax.add_patch(right_angle_limit)
 
 push_left = FancyArrow(
-    0.5, 0.5,      # p(x, y) coordinates
+    -0.2, 0.0,      # p(x, y) coordinates
     -1, 0,       # (dx, dy) direction
     width=0.8,
     length_includes_head=True,
@@ -108,7 +126,7 @@ push_left = FancyArrow(
 )
 
 push_right = FancyArrow(
-    1, 0.5,
+    0.2, 0.0,
     1, 0,
     width=0.8,
     length_includes_head=True,
@@ -170,6 +188,24 @@ def animate(frame, episode):
 
     pole.set_transform(pole_trans)
     pole.set_xy((x1 - POLE_WIDTH/2, y1 - POLE_WIDTH/2))
+
+    left_angle_trans = (
+        Affine2D()
+        .rotate_around(x1, y1, +th_max)
+        + ax.transData
+    )
+
+    left_angle_limit.set_transform(left_angle_trans)
+    left_angle_limit.set_xy((x1 - WALL_WIDTH/2, 0))
+
+    right_angle_trans = (
+        Affine2D()
+        .rotate_around(x1, y1, -th_max)
+        + ax.transData
+    )
+
+    right_angle_limit.set_transform(right_angle_trans)
+    right_angle_limit.set_xy((x1 - WALL_WIDTH/2, 0))
 
     # line.set_data([x1, x2], [y1, y2])
     # pole_trace.set_data(state.x2[-50:], state.y2[-50:])
