@@ -14,8 +14,8 @@ action = 2
 
 def init(fig):
     # choose balancing mode:
-    init_q_learning()
-    # init_DQN()
+    # init_q_learning()
+    init_DQN()
     # init_user_input(fig)
 
 
@@ -62,9 +62,6 @@ def init_DQN():
     agent = DQN.DQNAgent()
     agent.load(agent.Model_name)
     
-
-
-
 def get_action(state):
     global action
 
@@ -74,6 +71,9 @@ def get_action(state):
 
     if settings["control_type"] == "DQN":
         state = np.reshape(state, [1, agent.state_size])
-        action = np.argmax(agent.model.predict(state, verbose=0))
+        
+        # FAST single prediction bypassing the predict() overhead
+        q_values = agent.model(state, training=False).numpy()
+        action = np.argmax(q_values[0])
 
     return action
