@@ -109,10 +109,11 @@ right_angle_limit = plt.Rectangle(
     facecolor='red', edgecolor='red'
 )
 
-ax.add_patch(left_wall)
-ax.add_patch(right_wall)
-ax.add_patch(left_angle_limit)
-ax.add_patch(right_angle_limit)
+if GAME_MODE:
+    ax.add_patch(left_wall)
+    ax.add_patch(right_wall)
+    ax.add_patch(left_angle_limit)
+    ax.add_patch(right_angle_limit)
 
 push_left = FancyArrow(
     -0.2, 0.0,      # p(x, y) coordinates
@@ -163,12 +164,17 @@ def animate(frame, episode):
     current_score = state.current_time()
     best_score = np.max(episode_scores)
 
-    pretty_text = (
-        f"   EPISODE: {episode}/{EPISODES}   \n"
-        f"   Current: {current_score:>6.2f}s   \n"
-        f"   Best:    {best_score:>6.2f}s   "
-    )
-    
+    if GAME_MODE:
+        pretty_text = (
+            f"   EPISODE: {episode}/{EPISODES}   \n"
+            f"   Current: {current_score:>6.2f}s   \n"
+            f"   Best:    {best_score:>6.2f}s   "
+        )
+    else:
+        pretty_text = (
+            f"   TIME: {current_score:>6.2f}s   \n"
+        )
+        
     data.set_text(pretty_text)
 
     x1 = state.x1[-1]
@@ -207,8 +213,9 @@ def animate(frame, episode):
     right_angle_limit.set_transform(right_angle_trans)
     right_angle_limit.set_xy((x1 - WALL_WIDTH/2, 0))
 
-    # line.set_data([x1, x2], [y1, y2])
-    # pole_trace.set_data(state.x2[-50:], state.y2[-50:])
+    if not GAME_MODE:
+        pole_trace.set_data(state.x2[-50:], state.y2[-50:])
+    
     energy_line.set_data(state.t[:i], state.E[:i])
     
     ax2.relim()
@@ -230,13 +237,28 @@ def run_episode(episode_num):
 
     print(f"episode {episode_num} completed, score: {episode_scores[episode_num-1]:.2f}")
 
+def run_simluation():
+    global state
+    
+    state = SimulationState()
+
+    frame = 0
+    while 1:
+        animate(frame, 0)
+        plt.pause(1.0 / FPS)
+
+        frame += 1
+
 if __name__ == "__main__":
 
     plt.ion()
     plt.show()
 
-    for e in range(1, EPISODES+1):
-        run_episode(e)
+    if GAME_MODE:
+        for e in range(1, EPISODES+1):
+            run_episode(e)
+    else:
+        run_simluation()
 
     plt.ioff()
     plt.show()

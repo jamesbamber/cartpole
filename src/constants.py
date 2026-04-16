@@ -30,6 +30,7 @@ x0, th0, v0, w0 = random_state()
 
 #plotting constants
 
+GAME_MODE = 1 # 1 for multi episode run, 0 just for simulation
 EPISODES = 10
 
 FPS = 60
