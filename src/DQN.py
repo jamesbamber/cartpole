@@ -42,7 +42,7 @@ class SJEnv():
         self.x_threshold = 2.4
         self.theta_threshold = np.radians(12)
 
-    def random_state(): 
+    def random_state(self): 
         x = np.random.uniform(-0.1, 0.1)
         theta = np.random.uniform(-0.02, 0.02) + np.random.uniform(-0.15, 0.15)
         v = np.random.uniform(-0.5, 0.5)

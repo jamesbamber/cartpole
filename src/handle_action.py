@@ -16,7 +16,7 @@ def init(fig):
     # choose balancing mode:
     # init_q_learning()
     init_DQN()
-    # init_user_input(fig)
+    init_user_input(fig)
 
 
 # user input
@@ -37,7 +37,7 @@ def on_key(event):
 
 
 def init_user_input(fig):
-    settings["control_type"] = "keyboard"
+    # settings["control_type"] = "keyboard"
 
     fig.canvas.mpl_connect('key_press_event', on_key)
     fig.canvas.mpl_connect('key_release_event', on_key)
@@ -65,11 +65,11 @@ def init_DQN():
 def get_action(state):
     global action
 
-    if settings["control_type"] == "qlearning":
+    if len(pressed_keys) == 0 and settings["control_type"] == "qlearning":
         x_i, th_i, v_i, w_i = q_learning.discretize(state)
         action = q_learning.take_action(0, x_i, th_i, v_i, w_i)
 
-    if settings["control_type"] == "DQN":
+    if len(pressed_keys) == 0 and settings["control_type"] == "DQN":
         state = np.reshape(state, [1, agent.state_size])
         
         # FAST single prediction bypassing the predict() overhead
